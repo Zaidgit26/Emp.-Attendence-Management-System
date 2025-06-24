@@ -1,45 +1,34 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarIcon, CheckCircle, Loader2 } from "lucide-react";
+import { Formik, Form, Field } from "formik";
 import { format } from "date-fns";
 import { insertLeaveSchema, type InsertLeave } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Typography,
+  TextField,
+  Button,
+  MenuItem,
+  Box,
+  Alert,
+  CircularProgress,
+} from "@mui/material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { CheckCircle, Send } from "@mui/icons-material";
 
 const leaveTypes = [
-  { value: "annual", label: "Annual Leave" },
-  { value: "sick", label: "Sick Leave" },
-  { value: "maternity", label: "Maternity Leave" },
-  { value: "paternity", label: "Paternity Leave" },
-  { value: "emergency", label: "Emergency Leave" },
+  { value: "Annual", label: "Annual Leave" },
+  { value: "Sick", label: "Sick Leave" },
+  { value: "Personal", label: "Personal Leave" },
+  { value: "Maternity", label: "Maternity Leave" },
+  { value: "Paternity", label: "Paternity Leave" },
+  { value: "Emergency", label: "Emergency Leave" },
 ];
 
 export default function LeaveForm() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const form = useForm<InsertLeave>({
-    resolver: zodResolver(insertLeaveSchema),
-    defaultValues: {
-      employeeName: "",
-      leaveType: "",
-      fromDate: "",
-      toDate: "",
-      reason: "",
-    },
-  });
 
   const applyLeaveMutation = useMutation({
     mutationFn: async (data: InsertLeave) => {
@@ -48,203 +37,160 @@ export default function LeaveForm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leaves"] });
-      form.reset();
-      toast({
-        title: "Success!",
-        description: "Leave application submitted successfully.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to submit leave application. Please try again.",
-        variant: "destructive",
-      });
     },
   });
 
-  const onSubmit = (data: InsertLeave) => {
-    applyLeaveMutation.mutate(data);
+  const initialValues: InsertLeave = {
+    employeeName: "",
+    leaveType: "",
+    fromDate: "",
+    toDate: "",
+    reason: "",
   };
 
   return (
-    <Card className="shadow-md">
-      <CardHeader className="pb-6">
-        <div className="flex items-center">
-          <CheckCircle className="h-5 w-5 text-blue-600 mr-2" />
-          <CardTitle className="text-xl font-medium text-gray-900">Apply for Leave</CardTitle>
-        </div>
+    <Card sx={{ maxWidth: 800, mx: "auto", mt: 3 }}>
+      <CardHeader>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <CheckCircle color="primary" />
+          <Typography variant="h5" component="h1">
+            Apply for Leave
+          </Typography>
+        </Box>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="employeeName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">Employee Name *</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Enter employee name" 
-                        className="h-12"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+        <Formik
+          initialValues={initialValues}
+          validationSchema={insertLeaveSchema}
+          onSubmit={async (values, { resetForm }) => {
+            try {
+              await applyLeaveMutation.mutateAsync(values);
+              resetForm();
+            } catch (error) {
+              // Error handling is done in the mutation
+            }
+          }}
+        >
+          {({ values, errors, touched, handleChange, handleBlur, setFieldValue, isSubmitting }) => (
+            <Form>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                {applyLeaveMutation.isSuccess && (
+                  <Alert severity="success">
+                    Leave application submitted successfully!
+                  </Alert>
                 )}
-              />
 
-              <FormField
-                control={form.control}
-                name="leaveType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">Leave Type *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="h-12">
-                          <SelectValue placeholder="Select leave type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {leaveTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                {applyLeaveMutation.isError && (
+                  <Alert severity="error">
+                    Failed to submit leave application. Please try again.
+                  </Alert>
                 )}
-              />
 
-              <FormField
-                control={form.control}
-                name="fromDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">From Date *</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full h-12 pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(new Date(field.value), "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value ? new Date(field.value) : undefined}
-                          onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
+                  <TextField
+                    name="employeeName"
+                    label="Employee Name"
+                    value={values.employeeName}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    error={touched.employeeName && Boolean(errors.employeeName)}
+                    helperText={touched.employeeName && errors.employeeName}
+                    required
+                    fullWidth
+                  />
 
-              <FormField
-                control={form.control}
-                name="toDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">To Date *</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full h-12 pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(new Date(field.value), "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value ? new Date(field.value) : undefined}
-                          onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
-                          disabled={(date) => {
-                            const fromDate = form.getValues("fromDate");
-                            return date < new Date() || (fromDate ? date < new Date(fromDate) : false);
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                  <TextField
+                    name="leaveType"
+                    label="Leave Type"
+                    select
+                    value={values.leaveType}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    error={touched.leaveType && Boolean(errors.leaveType)}
+                    helperText={touched.leaveType && errors.leaveType}
+                    required
+                    fullWidth
+                  >
+                    {leaveTypes.map((type) => (
+                      <MenuItem key={type.value} value={type.value}>
+                        {type.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
 
-            <FormField
-              control={form.control}
-              name="reason"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">Reason *</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Please provide reason for leave"
-                      className="min-h-[100px] resize-vertical"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  <DatePicker
+                    label="From Date"
+                    value={values.fromDate ? new Date(values.fromDate) : null}
+                    onChange={(date) => setFieldValue("fromDate", date ? format(date, "yyyy-MM-dd") : "")}
+                    minDate={new Date()}
+                    slotProps={{
+                      textField: {
+                        error: touched.fromDate && Boolean(errors.fromDate),
+                        helperText: touched.fromDate && errors.fromDate,
+                        required: true,
+                        fullWidth: true,
+                      },
+                    }}
+                  />
 
-            <div className="flex justify-end space-x-4">
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={() => form.reset()}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={applyLeaveMutation.isPending}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {applyLeaveMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Submit Application
-              </Button>
-            </div>
-          </form>
-        </Form>
+                  <DatePicker
+                    label="To Date"
+                    value={values.toDate ? new Date(values.toDate) : null}
+                    onChange={(date) => setFieldValue("toDate", date ? format(date, "yyyy-MM-dd") : "")}
+                    minDate={values.fromDate ? new Date(values.fromDate) : new Date()}
+                    slotProps={{
+                      textField: {
+                        error: touched.toDate && Boolean(errors.toDate),
+                        helperText: touched.toDate && errors.toDate,
+                        required: true,
+                        fullWidth: true,
+                      },
+                    }}
+                  />
+                </Box>
+
+                <TextField
+                  name="reason"
+                  label="Reason"
+                  multiline
+                  rows={4}
+                  value={values.reason}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={touched.reason && Boolean(errors.reason)}
+                  helperText={touched.reason && errors.reason}
+                  placeholder="Please provide reason for leave"
+                  required
+                  fullWidth
+                />
+
+                <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    onClick={() => setFieldValue("employeeName", "")}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={isSubmitting || applyLeaveMutation.isPending}
+                    startIcon={
+                      isSubmitting || applyLeaveMutation.isPending ? (
+                        <CircularProgress size={20} />
+                      ) : (
+                        <Send />
+                      )
+                    }
+                  >
+                    Submit Application
+                  </Button>
+                </Box>
+              </Box>
+            </Form>
+          )}
+        </Formik>
       </CardContent>
     </Card>
   );

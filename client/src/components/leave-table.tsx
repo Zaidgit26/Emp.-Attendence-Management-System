@@ -1,42 +1,65 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Eye, Edit, RefreshCw, ListCheck, User } from "lucide-react";
 import type { Leave } from "@/lib/types";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Typography,
+  Button,
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Skeleton,
+  Box,
+  Avatar,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import {
+  Visibility,
+  Edit,
+  Refresh,
+  Assignment,
+  Person,
+} from "@mui/icons-material";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
-
-const getStatusBadgeVariant = (status: string) => {
+const getStatusChipColor = (status: string): "success" | "error" | "warning" | "default" => {
   switch (status.toLowerCase()) {
     case "approved":
-      return "default";
+      return "success";
     case "rejected":
-      return "destructive";
+      return "error";
     case "pending":
-      return "secondary";
+      return "warning";
     default:
-      return "outline";
+      return "default";
   }
 };
 
-const getLeaveTypeBadgeVariant = (leaveType: string) => {
+const getLeaveTypeChipColor = (leaveType: string): "primary" | "error" | "secondary" | "default" => {
   switch (leaveType.toLowerCase()) {
     case "annual":
-      return "default";
+      return "primary";
     case "sick":
-      return "destructive";
+      return "error";
     case "maternity":
     case "paternity":
       return "secondary";
     case "emergency":
-      return "outline";
+      return "default";
     default:
-      return "outline";
+      return "default";
   }
 };
 
@@ -49,6 +72,11 @@ const getInitials = (name: string) => {
     .slice(0, 2);
 };
 
+const getAvatarColor = (name: string) => {
+  const colors = ["#1976d2", "#388e3c", "#7b1fa2", "#f57c00", "#e91e63"];
+  return colors[name.length % colors.length];
+};
+
 export default function LeaveTable() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -58,145 +86,165 @@ export default function LeaveTable() {
 
   if (isLoading) {
     return (
-      <Card className="shadow-md">
+      <Card sx={{ maxWidth: 1200, mx: "auto", mt: 3 }}>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <ListCheck className="h-5 w-5 text-blue-600 mr-2" />
-              <CardTitle>Leave Records</CardTitle>
-            </div>
-          </div>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Assignment color="primary" />
+            <Typography variant="h5">Leave Records</Typography>
+          </Box>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full" />
+              <Skeleton key={i} variant="rectangular" height={64} />
             ))}
-          </div>
+          </Box>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="shadow-md">
-      <CardHeader className="pb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <ListCheck className="h-5 w-5 text-blue-600 mr-2" />
-            <CardTitle className="text-xl font-medium text-gray-900">Leave Records</CardTitle>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Approved">Approved</SelectItem>
-                <SelectItem value="Rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button 
-              variant="outline" 
-              size="sm" 
+    <Card sx={{ maxWidth: 1200, mx: "auto", mt: 3 }}>
+      <CardHeader>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Assignment color="primary" />
+            <Typography variant="h5">Leave Records</Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Filter by status</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Filter by status"
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="Pending">Pending</MenuItem>
+                <MenuItem value="Approved">Approved</MenuItem>
+                <MenuItem value="Rejected">Rejected</MenuItem>
+              </Select>
+            </FormControl>
+            <Button
+              variant="outlined"
+              size="small"
               onClick={() => refetch()}
-              className="text-blue-600 border-blue-600 hover:bg-blue-50"
+              startIcon={<Refresh />}
             >
-              <RefreshCw className="mr-1 h-4 w-4" />
               Refresh
             </Button>
-          </div>
-        </div>
+          </Box>
+        </Box>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent sx={{ p: 0 }}>
         {leaves.length === 0 ? (
-          <div className="text-center py-12">
-            <ListCheck className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No leave records</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {statusFilter === "all" 
-                ? "No leave applications have been submitted yet." 
+          <Box sx={{ textAlign: "center", py: 12 }}>
+            <Assignment sx={{ fontSize: 48, color: "text.secondary", mb: 2 }} />
+            <Typography variant="h6" color="text.primary">
+              No leave records
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {statusFilter === "all"
+                ? "No leave applications have been submitted yet."
                 : `No ${statusFilter.toLowerCase()} leave applications found.`}
-            </p>
-          </div>
+            </Typography>
+          </Box>
         ) : (
-          <div className="overflow-x-auto">
+          <TableContainer component={Paper} elevation={0}>
             <Table>
-              <TableHeader className="bg-gray-50">
+              <TableHead sx={{ bgcolor: "grey.50" }}>
                 <TableRow>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <TableCell sx={{ fontWeight: "medium", color: "text.secondary" }}>
                     Employee Name
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: "medium", color: "text.secondary" }}>
                     Leave Type
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: "medium", color: "text.secondary" }}>
                     Date Range
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: "medium", color: "text.secondary" }}>
                     Reason
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: "medium", color: "text.secondary" }}>
                     Status
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: "medium", color: "text.secondary" }}>
                     Actions
-                  </TableHead>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody className="bg-white divide-y divide-gray-200">
+              </TableHead>
+              <TableBody>
                 {leaves.map((leave) => (
-                  <TableRow key={leave.id} className="hover:bg-gray-50 transition-colors">
-                    <TableCell className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                          <span className="text-blue-600 text-sm font-medium">
-                            {getInitials(leave.employeeName)}
-                          </span>
-                        </div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {leave.employeeName}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant={getLeaveTypeBadgeVariant(leave.leaveType)}>
-                        {leave.leaveType.charAt(0).toUpperCase() + leave.leaveType.slice(1)} Leave
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {format(new Date(leave.fromDate), "MMM dd, yyyy")} - {format(new Date(leave.toDate), "MMM dd, yyyy")}
-                    </TableCell>
-                    <TableCell className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                      {leave.reason}
-                    </TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant={getStatusBadgeVariant(leave.status)}>
-                        {leave.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-900">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          disabled={leave.status !== "Pending"}
-                          className="text-gray-600 hover:text-gray-900 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  <TableRow key={leave.id} hover>
+                    <TableCell>
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <Avatar
+                          sx={{
+                            bgcolor: getAvatarColor(leave.employeeName),
+                            width: 32,
+                            height: 32,
+                            mr: 2,
+                            fontSize: "0.875rem",
+                          }}
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
+                          {getInitials(leave.employeeName)}
+                        </Avatar>
+                        <Typography variant="body2" fontWeight="medium">
+                          {leave.employeeName}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={`${leave.leaveType.charAt(0).toUpperCase() + leave.leaveType.slice(1)} Leave`}
+                        color={getLeaveTypeChipColor(leave.leaveType)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {format(new Date(leave.fromDate), "MMM dd, yyyy")} - {format(new Date(leave.toDate), "MMM dd, yyyy")}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 200 }}>
+                      <Typography variant="body2" noWrap>
+                        {leave.reason}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={leave.status}
+                        color={getStatusChipColor(leave.status)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <Tooltip title="View Details">
+                          <IconButton size="small" color="primary">
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title={leave.status !== "Pending" ? "Cannot edit non-pending requests" : "Edit Request"}>
+                          <span>
+                            <IconButton
+                              size="small"
+                              disabled={leave.status !== "Pending"}
+                              color="default"
+                            >
+                              <Edit fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </TableContainer>
         )}
       </CardContent>
     </Card>

@@ -1,6 +1,5 @@
 import { mysqlTable, varchar, int, date, timestamp } from "drizzle-orm/mysql-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+import * as yup from "yup";
 
 export const users = mysqlTable("users", {
   id: int("id").primaryKey().autoincrement(),
@@ -20,28 +19,25 @@ export const leaves = mysqlTable("leaves", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertUserSchema = yup.object({
+  username: yup.string().required("Username is required"),
+  password: yup.string().required("Password is required"),
 });
 
-export const insertLeaveSchema = createInsertSchema(leaves).pick({
-  employeeName: true,
-  leaveType: true,
-  fromDate: true,
-  toDate: true,
-  reason: true,
-}).extend({
-  fromDate: z.string().min(1, "From date is required"),
-  toDate: z.string().min(1, "To date is required"),
+export const insertLeaveSchema = yup.object({
+  employeeName: yup.string().required("Employee name is required"),
+  leaveType: yup.string().required("Leave type is required"),
+  fromDate: yup.string().required("From date is required"),
+  toDate: yup.string().required("To date is required"),
+  reason: yup.string().required("Reason is required"),
 });
 
-export const updateLeaveStatusSchema = z.object({
-  status: z.enum(["Pending", "Approved", "Rejected"]),
+export const updateLeaveStatusSchema = yup.object({
+  status: yup.string().oneOf(["Pending", "Approved", "Rejected"]).required(),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertUser = yup.InferType<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Leave = typeof leaves.$inferSelect;
-export type InsertLeave = z.infer<typeof insertLeaveSchema>;
-export type UpdateLeaveStatus = z.infer<typeof updateLeaveStatusSchema>;
+export type InsertLeave = yup.InferType<typeof insertLeaveSchema>;
+export type UpdateLeaveStatus = yup.InferType<typeof updateLeaveStatusSchema>;

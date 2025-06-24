@@ -1,25 +1,37 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { 
-  Shield, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Users, 
-  AlertCircle,
-  Calendar
-} from "lucide-react";
 import type { Leave, LeaveStats } from "@/lib/types";
 import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Typography,
+  Button,
+  Chip,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
+  Skeleton,
+  Box,
+  Grid,
+  Avatar,
+  Alert,
+  Snackbar,
+} from "@mui/material";
+import {
+  Shield,
+  CheckCircle,
+  Cancel,
+  Schedule,
+  People,
+  Warning,
+  CalendarToday,
+} from "@mui/icons-material";
 
 const getInitials = (name: string) => {
   return name
@@ -30,20 +42,26 @@ const getInitials = (name: string) => {
     .slice(0, 2);
 };
 
-const getInitialsColor = (name: string) => {
-  const colors = [
-    "bg-blue-100 text-blue-600",
-    "bg-green-100 text-green-600", 
-    "bg-purple-100 text-purple-600",
-    "bg-orange-100 text-orange-600",
-    "bg-pink-100 text-pink-600"
-  ];
+const getAvatarColor = (name: string) => {
+  const colors = ["#1976d2", "#388e3c", "#7b1fa2", "#f57c00", "#e91e63"];
   return colors[name.length % colors.length];
 };
 
 export default function AdminPanel() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [approveDialog, setApproveDialog] = useState<{ open: boolean; leave: Leave | null }>({
+    open: false,
+    leave: null,
+  });
+  const [rejectDialog, setRejectDialog] = useState<{ open: boolean; leave: Leave | null }>({
+    open: false,
+    leave: null,
+  });
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const { data: allLeaves = [], isLoading } = useQuery<Leave[]>({
     queryKey: ["/api/leaves"],
@@ -60,16 +78,18 @@ export default function AdminPanel() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leaves"] });
-      toast({
-        title: "Approved!",
-        description: "Leave request has been approved successfully.",
+      setApproveDialog({ open: false, leave: null });
+      setSnackbar({
+        open: true,
+        message: "Leave request has been approved successfully.",
+        severity: "success",
       });
     },
     onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to approve leave request.",
-        variant: "destructive",
+      setSnackbar({
+        open: true,
+        message: "Failed to approve leave request.",
+        severity: "error",
       });
     },
   });
@@ -81,16 +101,18 @@ export default function AdminPanel() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leaves"] });
-      toast({
-        title: "Rejected!",
-        description: "Leave request has been rejected.",
+      setRejectDialog({ open: false, leave: null });
+      setSnackbar({
+        open: true,
+        message: "Leave request has been rejected.",
+        severity: "success",
       });
     },
     onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to reject leave request.",
-        variant: "destructive",
+      setSnackbar({
+        open: true,
+        message: "Failed to reject leave request.",
+        severity: "error",
       });
     },
   });
@@ -104,240 +126,301 @@ export default function AdminPanel() {
 
   if (isLoading) {
     return (
-      <Card className="shadow-md">
+      <Card sx={{ maxWidth: 1200, mx: "auto", mt: 3 }}>
         <CardHeader>
-          <div className="flex items-center">
-            <Shield className="h-5 w-5 text-blue-600 mr-2" />
-            <CardTitle>Admin Panel</CardTitle>
-          </div>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Shield color="primary" />
+            <Typography variant="h5">Admin Panel</Typography>
+          </Box>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-32 w-full" />
+              <Skeleton key={i} variant="rectangular" height={128} />
             ))}
-          </div>
+          </Box>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="shadow-md">
-        <CardHeader className="pb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Shield className="h-5 w-5 text-blue-600 mr-2" />
-              <CardTitle className="text-xl font-medium text-gray-900">Admin Panel</CardTitle>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                <Clock className="w-3 h-3 mr-1" />
-                {stats.pending} Pending Approvals
-              </Badge>
-            </div>
-          </div>
+    <Box sx={{ maxWidth: 1200, mx: "auto", mt: 3 }}>
+      <Card sx={{ mb: 3 }}>
+        <CardHeader>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Shield color="primary" />
+              <Typography variant="h5">Admin Panel</Typography>
+            </Box>
+            <Chip
+              icon={<Schedule />}
+              label={`${stats.pending} Pending Approvals`}
+              color="warning"
+              variant="outlined"
+            />
+          </Box>
         </CardHeader>
 
         <CardContent>
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Pending Leave Requests</h3>
-            
-            {pendingLeaves.length === 0 ? (
-              <div className="text-center py-8">
-                <CheckCircle className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No pending requests</h3>
-                <p className="mt-1 text-sm text-gray-500">All leave requests have been processed.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {pendingLeaves.map((leave) => (
-                  <Card key={leave.id} className="border border-gray-200 hover:bg-gray-50 transition-colors">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center mb-2">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${getInitialsColor(leave.employeeName)}`}>
-                              <span className="font-medium">
-                                {getInitials(leave.employeeName)}
-                              </span>
-                            </div>
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-900">
-                                {leave.employeeName}
-                              </h4>
-                              <p className="text-xs text-gray-500">
-                                Applied on {format(new Date(leave.createdAt), "MMM dd, yyyy")}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                            <div>
-                              <span className="text-xs font-medium text-gray-500">Leave Type</span>
-                              <p className="text-sm text-gray-900">
-                                {leave.leaveType.charAt(0).toUpperCase() + leave.leaveType.slice(1)} Leave
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-xs font-medium text-gray-500">Duration</span>
-                              <p className="text-sm text-gray-900">
-                                {format(new Date(leave.fromDate), "MMM dd")} - {format(new Date(leave.toDate), "MMM dd, yyyy")}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-xs font-medium text-gray-500">Status</span>
-                              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                                Pending Review
-                              </Badge>
-                            </div>
-                          </div>
-                          
-                          <div className="mb-4">
-                            <span className="text-xs font-medium text-gray-500">Reason</span>
-                            <p className="text-sm text-gray-900 mt-1">{leave.reason}</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <Separator className="my-3" />
-                      
-                      <div className="flex items-center justify-end space-x-3">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="text-red-600 border-red-200 hover:bg-red-50"
-                              disabled={rejectMutation.isPending}
-                            >
-                              <XCircle className="mr-1 h-4 w-4" />
-                              Reject
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle className="flex items-center">
-                                <AlertCircle className="h-5 w-5 text-orange-500 mr-2" />
-                                Confirm Rejection
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to reject this leave request from {leave.employeeName}? 
-                                This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => rejectMutation.mutate(leave.id)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Reject Request
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+          <Typography variant="h6" sx={{ mb: 3 }}>
+            Pending Leave Requests
+          </Typography>
 
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button 
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                              disabled={approveMutation.isPending}
-                            >
-                              <CheckCircle className="mr-1 h-4 w-4" />
-                              Approve
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle className="flex items-center">
-                                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                                Confirm Approval
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to approve this leave request from {leave.employeeName}?
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => approveMutation.mutate(leave.id)}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                Approve Request
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+          {pendingLeaves.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 8 }}>
+              <CheckCircle sx={{ fontSize: 48, color: "text.secondary", mb: 2 }} />
+              <Typography variant="h6" color="text.primary">
+                No pending requests
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                All leave requests have been processed.
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {pendingLeaves.map((leave) => (
+                <Card key={leave.id} variant="outlined" sx={{ "&:hover": { bgcolor: "grey.50" } }}>
+                  <CardContent>
+                    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                          <Avatar
+                            sx={{
+                              bgcolor: getAvatarColor(leave.employeeName),
+                              mr: 2,
+                              width: 40,
+                              height: 40,
+                            }}
+                          >
+                            {getInitials(leave.employeeName)}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="subtitle1" fontWeight="medium">
+                              {leave.employeeName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Applied on {format(new Date(leave.createdAt), "MMM dd, yyyy")}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Grid container spacing={3} sx={{ mb: 2 }}>
+                          <Grid item xs={12} md={4}>
+                            <Typography variant="caption" color="text.secondary">
+                              Leave Type
+                            </Typography>
+                            <Typography variant="body2">
+                              {leave.leaveType.charAt(0).toUpperCase() + leave.leaveType.slice(1)} Leave
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12} md={4}>
+                            <Typography variant="caption" color="text.secondary">
+                              Duration
+                            </Typography>
+                            <Typography variant="body2">
+                              {format(new Date(leave.fromDate), "MMM dd")} - {format(new Date(leave.toDate), "MMM dd, yyyy")}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12} md={4}>
+                            <Typography variant="caption" color="text.secondary">
+                              Status
+                            </Typography>
+                            <Chip label="Pending Review" color="warning" size="small" />
+                          </Grid>
+                        </Grid>
+
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            Reason
+                          </Typography>
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            {leave.reason}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    <Divider sx={{ my: 2 }} />
+
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        startIcon={<Cancel />}
+                        disabled={rejectMutation.isPending}
+                        onClick={() => setRejectDialog({ open: true, leave })}
+                      >
+                        Reject
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="success"
+                        size="small"
+                        startIcon={<CheckCircle />}
+                        disabled={approveMutation.isPending}
+                        onClick={() => setApproveDialog({ open: true, leave })}
+                      >
+                        Approve
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          )}
         </CardContent>
       </Card>
 
       {/* Statistics Section */}
-      <Card className="shadow-md">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-medium text-gray-900">Leave Statistics</CardTitle>
+          <Typography variant="h6">Leave Statistics</Typography>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-4">
-                <div className="flex items-center">
-                  <Clock className="h-8 w-8 text-blue-500 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-600">Pending</p>
-                    <p className="text-2xl font-bold text-blue-900">{stats.pending}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ bgcolor: "primary.light", color: "primary.contrastText" }}>
+                <CardContent sx={{ display: "flex", alignItems: "center", p: 2 }}>
+                  <Schedule sx={{ fontSize: 32, mr: 2 }} />
+                  <Box>
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                      Pending
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold">
+                      {stats.pending}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
 
-            <Card className="bg-green-50 border-green-200">
-              <CardContent className="p-4">
-                <div className="flex items-center">
-                  <CheckCircle className="h-8 w-8 text-green-500 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-green-600">Approved</p>
-                    <p className="text-2xl font-bold text-green-900">{stats.approved}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ bgcolor: "success.light", color: "success.contrastText" }}>
+                <CardContent sx={{ display: "flex", alignItems: "center", p: 2 }}>
+                  <CheckCircle sx={{ fontSize: 32, mr: 2 }} />
+                  <Box>
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                      Approved
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold">
+                      {stats.approved}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
 
-            <Card className="bg-red-50 border-red-200">
-              <CardContent className="p-4">
-                <div className="flex items-center">
-                  <XCircle className="h-8 w-8 text-red-500 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-red-600">Rejected</p>
-                    <p className="text-2xl font-bold text-red-900">{stats.rejected}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ bgcolor: "error.light", color: "error.contrastText" }}>
+                <CardContent sx={{ display: "flex", alignItems: "center", p: 2 }}>
+                  <Cancel sx={{ fontSize: 32, mr: 2 }} />
+                  <Box>
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                      Rejected
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold">
+                      {stats.rejected}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
 
-            <Card className="bg-purple-50 border-purple-200">
-              <CardContent className="p-4">
-                <div className="flex items-center">
-                  <Users className="h-8 w-8 text-purple-500 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-purple-600">Total</p>
-                    <p className="text-2xl font-bold text-purple-900">{stats.total}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ bgcolor: "secondary.light", color: "secondary.contrastText" }}>
+                <CardContent sx={{ display: "flex", alignItems: "center", p: 2 }}>
+                  <People sx={{ fontSize: 32, mr: 2 }} />
+                  <Box>
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                      Total
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold">
+                      {stats.total}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
         </CardContent>
       </Card>
-    </div>
+
+      {/* Approval Dialog */}
+      <Dialog
+        open={approveDialog.open}
+        onClose={() => setApproveDialog({ open: false, leave: null })}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <CheckCircle color="success" />
+          Confirm Approval
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to approve this leave request from{" "}
+            {approveDialog.leave?.employeeName}?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setApproveDialog({ open: false, leave: null })}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => approveDialog.leave && approveMutation.mutate(approveDialog.leave.id)}
+            variant="contained"
+            color="success"
+            disabled={approveMutation.isPending}
+          >
+            Approve Request
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Rejection Dialog */}
+      <Dialog
+        open={rejectDialog.open}
+        onClose={() => setRejectDialog({ open: false, leave: null })}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Warning color="warning" />
+          Confirm Rejection
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to reject this leave request from{" "}
+            {rejectDialog.leave?.employeeName}? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectDialog({ open: false, leave: null })}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => rejectDialog.leave && rejectMutation.mutate(rejectDialog.leave.id)}
+            variant="contained"
+            color="error"
+            disabled={rejectMutation.isPending}
+          >
+            Reject Request
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }

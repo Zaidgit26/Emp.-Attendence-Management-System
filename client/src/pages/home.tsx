@@ -1,69 +1,106 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Bell, Briefcase, User } from "lucide-react";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Avatar,
+  Box,
+  Container,
+  Tabs,
+  Tab,
+  Paper,
+} from "@mui/material";
+import {
+  Notifications,
+  Work,
+  Person,
+} from "@mui/icons-material";
 import LeaveForm from "@/components/leave-form";
 import LeaveTable from "@/components/leave-table";
 import AdminPanel from "@/components/admin-panel";
 
-export default function Home() {
-  const [activeTab, setActiveTab] = useState("apply");
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+    </div>
+  );
+}
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState(0);
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  };
+
+  return (
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Briefcase className="h-6 w-6 text-blue-600 mr-3" />
-              <h1 className="text-xl font-medium text-gray-900">Leave Management System</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
-              </Button>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">JD</span>
-                </div>
-                <span className="text-sm font-medium text-gray-700">John Doe</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppBar position="sticky" elevation={1} sx={{ bgcolor: "background.paper", color: "text.primary" }}>
+        <Toolbar>
+          <Work sx={{ mr: 2, color: "primary.main" }} />
+          <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
+            Leave Management System
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <IconButton color="inherit">
+              <Notifications />
+            </IconButton>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main" }}>
+                JD
+              </Avatar>
+              <Typography variant="body2" fontWeight="medium">
+                John Doe
+              </Typography>
+            </Box>
+          </Box>
+        </Toolbar>
+      </AppBar>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="apply" className="text-sm font-medium">
-              Apply Leave
-            </TabsTrigger>
-            <TabsTrigger value="records" className="text-sm font-medium">
-              Leave Records
-            </TabsTrigger>
-            <TabsTrigger value="admin" className="text-sm font-medium">
-              Admin Panel
-            </TabsTrigger>
-          </TabsList>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Paper elevation={0} sx={{ bgcolor: "transparent" }}>
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            centered
+            sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}
+          >
+            <Tab label="Apply Leave" />
+            <Tab label="Leave Records" />
+            <Tab label="Admin Panel" />
+          </Tabs>
 
-          <TabsContent value="apply" className="space-y-6">
+          <TabPanel value={activeTab} index={0}>
             <LeaveForm />
-          </TabsContent>
+          </TabPanel>
 
-          <TabsContent value="records" className="space-y-6">
+          <TabPanel value={activeTab} index={1}>
             <LeaveTable />
-          </TabsContent>
+          </TabPanel>
 
-          <TabsContent value="admin" className="space-y-6">
+          <TabPanel value={activeTab} index={2}>
             <AdminPanel />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
+          </TabPanel>
+        </Paper>
+      </Container>
+    </Box>
   );
 }

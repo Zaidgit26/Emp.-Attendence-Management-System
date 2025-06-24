@@ -2,17 +2,17 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertLeaveSchema, updateLeaveStatusSchema } from "@shared/schema";
-import { z } from "zod";
+import * as yup from "yup";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply for leave
   app.post("/api/apply-leave", async (req, res) => {
     try {
-      const leaveData = insertLeaveSchema.parse(req.body);
+      const leaveData = await insertLeaveSchema.validate(req.body);
       const leave = await storage.createLeave(leaveData);
       res.json(leave);
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error instanceof yup.ValidationError) {
         res.status(400).json({ message: "Invalid input", errors: error.errors });
       } else {
         res.status(500).json({ message: "Internal server error" });

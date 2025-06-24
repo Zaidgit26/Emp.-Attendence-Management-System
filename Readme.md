@@ -77,10 +77,11 @@ This is a full-stack Employee Leave Management System built with React, Express,
 - **Connection**: Direct TCP connection to localhost MySQL server
 
 ### UI/UX Libraries
-- **Radix UI**: Accessible component primitives
+- **Radix UI**: Accessible component primitives (optimized - only used components included)
 - **Lucide React**: Icon library for consistent iconography
 - **date-fns**: Date manipulation and formatting utilities
 - **React Hook Form**: Form state management and validation
+- **shadcn/ui**: Clean, modern UI components (unused components removed)
 
 ### Development Tools
 - **TypeScript**: Static type checking across the stack
@@ -105,8 +106,9 @@ This is a full-stack Employee Leave Management System built with React, Express,
 
 ### Database Management
 - **Schema Evolution**: Drizzle migrations handle database schema changes
-- **Connection Management**: MySQL connection with environment-based configuration
+- **Connection Management**: MySQL connection with optimized pool configuration
 - **Environment Variables**: Secure database credentials configuration
+- **Default Credentials**: Configured for MySQL user 'root1' with password '2002'
 
 ## User Preferences
 
@@ -116,3 +118,11 @@ Preferred communication style: Simple, everyday language.
 
 Changelog:
 - June 24, 2025. Initial setup
+- June 24, 2025. Comprehensive cleanup:
+  - Removed PostgreSQL dependencies (connect-pg-simple)
+  - Removed unused Radix UI components (18 packages)
+  - Removed unused dependencies (passport, express-session, memorystore, etc.)
+  - Removed unused shadcn/ui components (28 files)
+  - Optimized database configuration for MySQL with user preferences
+  - Added database viewing script
+  - Cleaned up code formatting and structure
