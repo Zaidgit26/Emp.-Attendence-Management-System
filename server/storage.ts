@@ -88,6 +88,27 @@ export class DatabaseStorage implements IStorage {
   async getLeavesByStatus(status: string): Promise<Leave[]> {
     return await db.select().from(leaves).where(eq(leaves.status, status)).orderBy(desc(leaves.createdAt));
   }
+
+  async updateLeave(id: number, data: InsertLeave): Promise<Leave | undefined> {
+    await db
+      .update(leaves)
+      .set({
+        employeeName: data.employeeName,
+        leaveType: data.leaveType,
+        fromDate: new Date(data.fromDate),
+        toDate: new Date(data.toDate),
+        reason: data.reason,
+        updatedAt: new Date(),
+      })
+      .where(eq(leaves.id, id));
+
+    // MySQL doesn't support returning, so we need to fetch the updated leave
+    const [leave] = await db
+      .select()
+      .from(leaves)
+      .where(eq(leaves.id, id));
+    return leave || undefined;
+  }
 }
 
 export const storage = new DatabaseStorage();

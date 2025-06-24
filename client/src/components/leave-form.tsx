@@ -14,6 +14,8 @@ import {
   Box,
   Alert,
   CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { CheckCircle, Send } from "@mui/icons-material";
@@ -28,6 +30,8 @@ const leaveTypes = [
 ];
 
 export default function LeaveForm() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const queryClient = useQueryClient();
 
   const applyLeaveMutation = useMutation({
@@ -49,11 +53,11 @@ export default function LeaveForm() {
   };
 
   return (
-    <Card sx={{ maxWidth: 800, mx: "auto", mt: 3 }}>
+    <Card sx={{ maxWidth: 800, mx: isMobile ? 2 : "auto", mt: 3 }}>
       <CardHeader>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <CheckCircle color="primary" />
-          <Typography variant="h5" component="h1">
+          <Typography variant={isMobile ? "h6" : "h5"} component="h1">
             Apply for Leave
           </Typography>
         </Box>
@@ -86,7 +90,11 @@ export default function LeaveForm() {
                   </Alert>
                 )}
 
-                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
+                <Box sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                  gap: isMobile ? 2 : 3
+                }}>
                   <TextField
                     name="employeeName"
                     label="Employee Name"
@@ -97,6 +105,7 @@ export default function LeaveForm() {
                     helperText={touched.employeeName && errors.employeeName}
                     required
                     fullWidth
+                    size={isMobile ? "small" : "medium"}
                   />
 
                   <TextField
@@ -110,6 +119,7 @@ export default function LeaveForm() {
                     helperText={touched.leaveType && errors.leaveType}
                     required
                     fullWidth
+                    size={isMobile ? "small" : "medium"}
                   >
                     {leaveTypes.map((type) => (
                       <MenuItem key={type.value} value={type.value}>
@@ -129,6 +139,7 @@ export default function LeaveForm() {
                         helperText: touched.fromDate && errors.fromDate,
                         required: true,
                         fullWidth: true,
+                        size: isMobile ? "small" : "medium",
                       },
                     }}
                   />
@@ -144,6 +155,7 @@ export default function LeaveForm() {
                         helperText: touched.toDate && errors.toDate,
                         required: true,
                         fullWidth: true,
+                        size: isMobile ? "small" : "medium",
                       },
                     }}
                   />
@@ -153,7 +165,7 @@ export default function LeaveForm() {
                   name="reason"
                   label="Reason"
                   multiline
-                  rows={4}
+                  rows={isMobile ? 3 : 4}
                   value={values.reason}
                   onChange={handleChange}
                   onBlur={handleBlur}
@@ -162,13 +174,21 @@ export default function LeaveForm() {
                   placeholder="Please provide reason for leave"
                   required
                   fullWidth
+                  size={isMobile ? "small" : "medium"}
                 />
 
-                <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                <Box sx={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 2,
+                  flexDirection: isMobile ? "column" : "row"
+                }}>
                   <Button
                     type="button"
                     variant="outlined"
                     onClick={() => setFieldValue("employeeName", "")}
+                    size={isMobile ? "medium" : "large"}
+                    fullWidth={isMobile}
                   >
                     Cancel
                   </Button>
@@ -183,6 +203,8 @@ export default function LeaveForm() {
                         <Send />
                       )
                     }
+                    size={isMobile ? "medium" : "large"}
+                    fullWidth={isMobile}
                   >
                     Submit Application
                   </Button>

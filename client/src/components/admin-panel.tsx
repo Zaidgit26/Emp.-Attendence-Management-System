@@ -22,6 +22,8 @@ import {
   Avatar,
   Alert,
   Snackbar,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
   Shield,
@@ -48,6 +50,8 @@ const getAvatarColor = (name: string) => {
 };
 
 export default function AdminPanel() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const queryClient = useQueryClient();
   const [approveDialog, setApproveDialog] = useState<{ open: boolean; leave: Leave | null }>({
     open: false,
@@ -145,19 +149,26 @@ export default function AdminPanel() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", mt: 3 }}>
+    <Box sx={{ maxWidth: 1200, mx: "auto", mt: 3, px: isMobile ? 2 : 0 }}>
       <Card sx={{ mb: 3 }}>
         <CardHeader>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box sx={{
+            display: "flex",
+            alignItems: isMobile ? "flex-start" : "center",
+            justifyContent: "space-between",
+            flexDirection: isMobile ? "column" : "row",
+            gap: isMobile ? 2 : 0
+          }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Shield color="primary" />
-              <Typography variant="h5">Admin Panel</Typography>
+              <Typography variant={isMobile ? "h6" : "h5"}>Admin Panel</Typography>
             </Box>
             <Chip
               icon={<Schedule />}
               label={`${stats.pending} Pending Approvals`}
               color="warning"
               variant="outlined"
+              size={isMobile ? "small" : "medium"}
             />
           </Box>
         </CardHeader>
@@ -243,7 +254,12 @@ export default function AdminPanel() {
 
                     <Divider sx={{ my: 2 }} />
 
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+                    <Box sx={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      gap: 1,
+                      flexDirection: isMobile ? "column" : "row"
+                    }}>
                       <Button
                         variant="outlined"
                         color="error"
@@ -251,6 +267,7 @@ export default function AdminPanel() {
                         startIcon={<Cancel />}
                         disabled={rejectMutation.isPending}
                         onClick={() => setRejectDialog({ open: true, leave })}
+                        fullWidth={isMobile}
                       >
                         Reject
                       </Button>
@@ -261,6 +278,7 @@ export default function AdminPanel() {
                         startIcon={<CheckCircle />}
                         disabled={approveMutation.isPending}
                         onClick={() => setApproveDialog({ open: true, leave })}
+                        fullWidth={isMobile}
                       >
                         Approve
                       </Button>
@@ -351,6 +369,9 @@ export default function AdminPanel() {
       <Dialog
         open={approveDialog.open}
         onClose={() => setApproveDialog({ open: false, leave: null })}
+        fullScreen={isMobile}
+        maxWidth="sm"
+        fullWidth
       >
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <CheckCircle color="success" />
@@ -362,8 +383,11 @@ export default function AdminPanel() {
             {approveDialog.leave?.employeeName}?
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setApproveDialog({ open: false, leave: null })}>
+        <DialogActions sx={{ flexDirection: isMobile ? "column" : "row", gap: isMobile ? 1 : 0 }}>
+          <Button
+            onClick={() => setApproveDialog({ open: false, leave: null })}
+            fullWidth={isMobile}
+          >
             Cancel
           </Button>
           <Button
@@ -371,6 +395,7 @@ export default function AdminPanel() {
             variant="contained"
             color="success"
             disabled={approveMutation.isPending}
+            fullWidth={isMobile}
           >
             Approve Request
           </Button>
@@ -381,6 +406,9 @@ export default function AdminPanel() {
       <Dialog
         open={rejectDialog.open}
         onClose={() => setRejectDialog({ open: false, leave: null })}
+        fullScreen={isMobile}
+        maxWidth="sm"
+        fullWidth
       >
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Warning color="warning" />
@@ -392,8 +420,11 @@ export default function AdminPanel() {
             {rejectDialog.leave?.employeeName}? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRejectDialog({ open: false, leave: null })}>
+        <DialogActions sx={{ flexDirection: isMobile ? "column" : "row", gap: isMobile ? 1 : 0 }}>
+          <Button
+            onClick={() => setRejectDialog({ open: false, leave: null })}
+            fullWidth={isMobile}
+          >
             Cancel
           </Button>
           <Button
@@ -401,6 +432,7 @@ export default function AdminPanel() {
             variant="contained"
             color="error"
             disabled={rejectMutation.isPending}
+            fullWidth={isMobile}
           >
             Reject Request
           </Button>

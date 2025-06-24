@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a full-stack Employee Leave Management System built with React, Express, and MySQL. The application allows employees to submit leave requests and provides an admin interface for managing and approving/rejecting leave applications. The system features a modern UI built with shadcn/ui components and TailwindCSS, with a robust backend API and MySQL database for data persistence.
+This is a full-stack Employee Leave Management System built with React, Express, and MySQL. The application allows employees to submit leave requests and provides an admin interface for managing and approving/rejecting leave applications. The system features a modern Material UI interface with a robust backend API and MySQL database for data persistence.
 
 ## System Architecture
 
@@ -10,9 +10,9 @@ This is a full-stack Employee Leave Management System built with React, Express,
 - **Framework**: React 18 with TypeScript
 - **Routing**: Wouter for lightweight client-side routing
 - **State Management**: TanStack Query (React Query) for server state management
-- **UI Components**: shadcn/ui component library built on Radix UI primitives
-- **Styling**: TailwindCSS with custom CSS variables for theming
-- **Forms**: React Hook Form with Zod validation
+- **UI Components**: Material UI component library
+- **Styling**: Material UI theme system with custom styling
+- **Forms**: Formik with Yup validation
 - **Build Tool**: Vite for fast development and optimized builds
 
 ### Backend Architecture
@@ -36,7 +36,7 @@ This is a full-stack Employee Leave Management System built with React, Express,
 ### Database Schema
 - **Users Table**: Stores user credentials with unique username constraints
 - **Leaves Table**: Comprehensive leave management with employee details, dates, reasons, and approval status
-- **Validation**: Zod schemas for runtime validation of API inputs
+- **Validation**: Yup schemas for runtime validation of API inputs
 
 ### API Endpoints
 - `POST /api/apply-leave` - Submit new leave applications
@@ -48,13 +48,13 @@ This is a full-stack Employee Leave Management System built with React, Express,
 - **LeaveForm**: Form component for submitting leave requests
 - **LeaveTable**: Data table displaying leave records with filtering
 - **AdminPanel**: Administrative interface for managing leave approvals
-- **UI Components**: Complete set of reusable UI components from shadcn/ui
+- **UI Components**: Material UI components for consistent design
 
 ## Data Flow
 
 1. **Leave Application Flow**:
    - User fills out leave form with validation
-   - Form data is validated using Zod schemas
+   - Form data is validated using Yup schemas
    - API call submits data to backend
    - Backend validates and stores in MySQL
    - Frontend updates via React Query cache invalidation
@@ -77,11 +77,11 @@ This is a full-stack Employee Leave Management System built with React, Express,
 - **Connection**: Direct TCP connection to localhost MySQL server
 
 ### UI/UX Libraries
-- **Radix UI**: Accessible component primitives (optimized - only used components included)
-- **Lucide React**: Icon library for consistent iconography
+- **Material UI**: Complete React component library with Material Design
+- **Material UI Icons**: Icon library for consistent iconography
 - **date-fns**: Date manipulation and formatting utilities
-- **React Hook Form**: Form state management and validation
-- **shadcn/ui**: Clean, modern UI components (unused components removed)
+- **Formik**: Form state management and validation
+- **Yup**: Schema validation for forms and API inputs
 
 ### Development Tools
 - **TypeScript**: Static type checking across the stack
@@ -109,20 +109,3 @@ This is a full-stack Employee Leave Management System built with React, Express,
 - **Connection Management**: MySQL connection with optimized pool configuration
 - **Environment Variables**: Secure database credentials configuration
 - **Default Credentials**: Configured for MySQL user 'root1' with password '2002'
-
-## User Preferences
-
-Preferred communication style: Simple, everyday language.
-
-## Changelog
-
-Changelog:
-- June 24, 2025. Initial setup
-- June 24, 2025. Comprehensive cleanup:
-  - Removed PostgreSQL dependencies (connect-pg-simple)
-  - Removed unused Radix UI components (18 packages)
-  - Removed unused dependencies (passport, express-session, memorystore, etc.)
-  - Removed unused shadcn/ui components (28 files)
-  - Optimized database configuration for MySQL with user preferences
-  - Added database viewing script
-  - Cleaned up code formatting and structure
