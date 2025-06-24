@@ -27,21 +27,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
+    const result = await db
       .insert(users)
-      .values(insertUser)
-      .returning();
+      .values(insertUser);
+
+    // MySQL doesn't support returning, so we need to fetch the inserted user
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, result[0].insertId));
     return user;
   }
 
   async createLeave(insertLeave: InsertLeave): Promise<Leave> {
-    const [leave] = await db
+    const result = await db
       .insert(leaves)
       .values({
-        ...insertLeave,
+        employeeName: insertLeave.employeeName,
+        leaveType: insertLeave.leaveType,
+        fromDate: new Date(insertLeave.fromDate),
+        toDate: new Date(insertLeave.toDate),
+        reason: insertLeave.reason,
         status: "Pending",
-      })
-      .returning();
+      });
+
+    // MySQL doesn't support returning, so we need to fetch the inserted leave
+    const [leave] = await db
+      .select()
+      .from(leaves)
+      .where(eq(leaves.id, result[0].insertId));
     return leave;
   }
 
@@ -55,14 +69,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateLeaveStatus(id: number, statusUpdate: UpdateLeaveStatus): Promise<Leave | undefined> {
-    const [leave] = await db
+    await db
       .update(leaves)
-      .set({ 
+      .set({
         status: statusUpdate.status,
         updatedAt: new Date()
       })
-      .where(eq(leaves.id, id))
-      .returning();
+      .where(eq(leaves.id, id));
+
+    // MySQL doesn't support returning, so we need to fetch the updated leave
+    const [leave] = await db
+      .select()
+      .from(leaves)
+      .where(eq(leaves.id, id));
     return leave || undefined;
   }
 

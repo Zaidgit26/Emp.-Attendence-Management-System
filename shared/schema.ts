@@ -1,21 +1,21 @@
-import { pgTable, text, serial, integer, boolean, date, timestamp } from "drizzle-orm/pg-core";
+import { mysqlTable, varchar, int, date, timestamp } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+export const users = mysqlTable("users", {
+  id: int("id").primaryKey().autoincrement(),
+  username: varchar("username", { length: 100 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
 });
 
-export const leaves = pgTable("leaves", {
-  id: serial("id").primaryKey(),
-  employeeName: text("employee_name").notNull(),
-  leaveType: text("leave_type").notNull(),
+export const leaves = mysqlTable("leaves", {
+  id: int("id").primaryKey().autoincrement(),
+  employeeName: varchar("employee_name", { length: 100 }).notNull(),
+  leaveType: varchar("leave_type", { length: 50 }).notNull(),
   fromDate: date("from_date").notNull(),
   toDate: date("to_date").notNull(),
-  reason: text("reason").notNull(),
-  status: text("status").notNull().default("Pending"),
+  reason: varchar("reason", { length: 500 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("Pending"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -31,6 +31,9 @@ export const insertLeaveSchema = createInsertSchema(leaves).pick({
   fromDate: true,
   toDate: true,
   reason: true,
+}).extend({
+  fromDate: z.string().min(1, "From date is required"),
+  toDate: z.string().min(1, "To date is required"),
 });
 
 export const updateLeaveStatusSchema = z.object({

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a full-stack Employee Leave Management System built with React, Express, and PostgreSQL. The application allows employees to submit leave requests and provides an admin interface for managing and approving/rejecting leave applications. The system features a modern UI built with shadcn/ui components and TailwindCSS, with a robust backend API and PostgreSQL database for data persistence.
+This is a full-stack Employee Leave Management System built with React, Express, and MySQL. The application allows employees to submit leave requests and provides an admin interface for managing and approving/rejecting leave applications. The system features a modern UI built with shadcn/ui components and TailwindCSS, with a robust backend API and MySQL database for data persistence.
 
 ## System Architecture
 
@@ -19,12 +19,12 @@ This is a full-stack Employee Leave Management System built with React, Express,
 - **Runtime**: Node.js with Express.js framework
 - **Language**: TypeScript for type safety
 - **Database ORM**: Drizzle ORM for type-safe database operations
-- **Database**: PostgreSQL (configured for Neon serverless)
-- **Session Management**: Uses connect-pg-simple for PostgreSQL session storage
+- **Database**: MySQL (localhost connection)
+- **Session Management**: Standard session management
 - **API Structure**: RESTful API with proper error handling and logging
 
 ### Database Architecture
-- **Database**: PostgreSQL with Drizzle ORM
+- **Database**: MySQL with Drizzle ORM
 - **Tables**: 
   - `users` - User authentication and management
   - `leaves` - Leave request storage with status tracking
@@ -56,7 +56,7 @@ This is a full-stack Employee Leave Management System built with React, Express,
    - User fills out leave form with validation
    - Form data is validated using Zod schemas
    - API call submits data to backend
-   - Backend validates and stores in PostgreSQL
+   - Backend validates and stores in MySQL
    - Frontend updates via React Query cache invalidation
 
 2. **Leave Management Flow**:
@@ -73,8 +73,8 @@ This is a full-stack Employee Leave Management System built with React, Express,
 ## External Dependencies
 
 ### Database
-- **Neon PostgreSQL**: Serverless PostgreSQL database
-- **Connection**: WebSocket-based connection for serverless compatibility
+- **MySQL**: Local MySQL database
+- **Connection**: Direct TCP connection to localhost MySQL server
 
 ### UI/UX Libraries
 - **Radix UI**: Accessible component primitives
@@ -105,8 +105,8 @@ This is a full-stack Employee Leave Management System built with React, Express,
 
 ### Database Management
 - **Schema Evolution**: Drizzle migrations handle database schema changes
-- **Connection Pooling**: Neon connection pooling for serverless scalability
-- **Environment Variables**: Secure database URL configuration
+- **Connection Management**: MySQL connection with environment-based configuration
+- **Environment Variables**: Secure database credentials configuration
 
 ## User Preferences
 

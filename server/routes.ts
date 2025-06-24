@@ -25,13 +25,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { status } = req.query;
       let leaves;
-      
+
       if (status && typeof status === 'string') {
         leaves = await storage.getLeavesByStatus(status);
       } else {
         leaves = await storage.getAllLeaves();
       }
-      
+
       res.json(leaves);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });

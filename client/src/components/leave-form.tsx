@@ -194,7 +194,7 @@ export default function LeaveForm() {
                           onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
                           disabled={(date) => {
                             const fromDate = form.getValues("fromDate");
-                            return date < new Date() || (fromDate && date < new Date(fromDate));
+                            return date < new Date() || (fromDate ? date < new Date(fromDate) : false);
                           }}
                           initialFocus
                         />
