@@ -56,7 +56,7 @@ export default function Home() {
         <Toolbar>
           <Work sx={{ mr: 2, color: "primary.main" }} />
           <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
-            Leave Management System
+            Employee Leave Management System
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <IconButton color="inherit">
