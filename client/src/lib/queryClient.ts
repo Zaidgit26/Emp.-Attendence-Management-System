@@ -1,5 +1,16 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// Global token storage for API requests
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
+
+export function getAuthToken(): string | null {
+  return authToken;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -12,9 +23,19 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const headers: Record<string, string> = {};
+
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -29,7 +50,14 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const headers: Record<string, string> = {};
+
+    if (authToken) {
+      headers["Authorization"] = `Bearer ${authToken}`;
+    }
+
     const res = await fetch(queryKey[0] as string, {
+      headers,
       credentials: "include",
     });
 

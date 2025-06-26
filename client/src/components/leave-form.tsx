@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Formik, Form, Field } from "formik";
 import { format } from "date-fns";
-import { insertLeaveSchema, type InsertLeave } from "@shared/schema";
+import * as yup from "yup";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Card,
   CardContent,
@@ -29,13 +30,37 @@ const leaveTypes = [
   { value: "Emergency", label: "Emergency Leave" },
 ];
 
+// Updated validation schema to match backend requirements
+const insertLeaveSchema = yup.object({
+  employee_name: yup.string().required("Employee name is required"),
+  leave_type: yup.string().oneOf(leaveTypes.map(t => t.value), "Invalid leave type").required("Leave type is required"),
+  from_date: yup.string().required("From date is required"),
+  to_date: yup.string().required("To date is required"),
+  reason: yup.string().min(10, "Reason must be at least 10 characters").max(500, "Reason cannot exceed 500 characters").required("Reason is required"),
+}).test('date-validation', 'To date must be after from date', function(values) {
+  const { from_date, to_date } = values;
+  if (from_date && to_date) {
+    return new Date(to_date) >= new Date(from_date);
+  }
+  return true;
+});
+
+interface LeaveFormValues {
+  employee_name: string;
+  leave_type: string;
+  from_date: string;
+  to_date: string;
+  reason: string;
+}
+
 export default function LeaveForm() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const queryClient = useQueryClient();
+  const { state } = useAuth();
 
   const applyLeaveMutation = useMutation({
-    mutationFn: async (data: InsertLeave) => {
+    mutationFn: async (data: LeaveFormValues) => {
       const response = await apiRequest("POST", "/api/apply-leave", data);
       return response.json();
     },
@@ -44,11 +69,11 @@ export default function LeaveForm() {
     },
   });
 
-  const initialValues: InsertLeave = {
-    employeeName: "",
-    leaveType: "",
-    fromDate: "",
-    toDate: "",
+  const initialValues: LeaveFormValues = {
+    employee_name: state.user?.username || "",
+    leave_type: "",
+    from_date: "",
+    to_date: "",
     reason: "",
   };
 
@@ -68,10 +93,11 @@ export default function LeaveForm() {
           validationSchema={insertLeaveSchema}
           onSubmit={async (values, { resetForm }) => {
             try {
+              console.log('Form values being submitted:', values);
               await applyLeaveMutation.mutateAsync(values);
               resetForm();
             } catch (error) {
-              // Error handling is done in the mutation
+              console.error('Form submission error:', error);
             }
           }}
         >
@@ -96,27 +122,27 @@ export default function LeaveForm() {
                   gap: isMobile ? 2 : 3
                 }}>
                   <TextField
-                    name="employeeName"
+                    name="employee_name"
                     label="Employee Name"
-                    value={values.employeeName}
+                    value={values.employee_name}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    error={touched.employeeName && Boolean(errors.employeeName)}
-                    helperText={touched.employeeName && errors.employeeName}
+                    error={touched.employee_name && Boolean(errors.employee_name)}
+                    helperText={touched.employee_name && errors.employee_name}
                     required
                     fullWidth
                     size={isMobile ? "small" : "medium"}
                   />
 
                   <TextField
-                    name="leaveType"
+                    name="leave_type"
                     label="Leave Type"
                     select
-                    value={values.leaveType}
+                    value={values.leave_type}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    error={touched.leaveType && Boolean(errors.leaveType)}
-                    helperText={touched.leaveType && errors.leaveType}
+                    error={touched.leave_type && Boolean(errors.leave_type)}
+                    helperText={touched.leave_type && errors.leave_type}
                     required
                     fullWidth
                     size={isMobile ? "small" : "medium"}
@@ -130,13 +156,19 @@ export default function LeaveForm() {
 
                   <DatePicker
                     label="From Date"
-                    value={values.fromDate ? new Date(values.fromDate) : null}
-                    onChange={(date) => setFieldValue("fromDate", date ? format(date, "yyyy-MM-dd") : "")}
+                    value={values.from_date ? new Date(values.from_date) : null}
+                    onChange={(date) => {
+                      if (date && !isNaN(date.getTime())) {
+                        setFieldValue("from_date", format(date, "yyyy-MM-dd"));
+                      } else {
+                        setFieldValue("from_date", "");
+                      }
+                    }}
                     minDate={new Date()}
                     slotProps={{
                       textField: {
-                        error: touched.fromDate && Boolean(errors.fromDate),
-                        helperText: touched.fromDate && errors.fromDate,
+                        error: touched.from_date && Boolean(errors.from_date),
+                        helperText: touched.from_date && errors.from_date,
                         required: true,
                         fullWidth: true,
                         size: isMobile ? "small" : "medium",
@@ -146,13 +178,19 @@ export default function LeaveForm() {
 
                   <DatePicker
                     label="To Date"
-                    value={values.toDate ? new Date(values.toDate) : null}
-                    onChange={(date) => setFieldValue("toDate", date ? format(date, "yyyy-MM-dd") : "")}
-                    minDate={values.fromDate ? new Date(values.fromDate) : new Date()}
+                    value={values.to_date ? new Date(values.to_date) : null}
+                    onChange={(date) => {
+                      if (date && !isNaN(date.getTime())) {
+                        setFieldValue("to_date", format(date, "yyyy-MM-dd"));
+                      } else {
+                        setFieldValue("to_date", "");
+                      }
+                    }}
+                    minDate={values.from_date ? new Date(values.from_date) : new Date()}
                     slotProps={{
                       textField: {
-                        error: touched.toDate && Boolean(errors.toDate),
-                        helperText: touched.toDate && errors.toDate,
+                        error: touched.to_date && Boolean(errors.to_date),
+                        helperText: touched.to_date && errors.to_date,
                         required: true,
                         fullWidth: true,
                         size: isMobile ? "small" : "medium",

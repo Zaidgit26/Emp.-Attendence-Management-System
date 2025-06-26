@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Formik, Form } from "formik";
-import { insertLeaveSchema, type InsertLeave } from "@shared/schema";
+import * as yup from "yup";
 import { apiRequest } from "@/lib/queryClient";
-import type { Leave } from "@/lib/types";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Card,
   CardContent,
@@ -39,6 +39,8 @@ import {
   TextField,
   Alert,
   CircularProgress,
+  Pagination,
+  Stack,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import {
@@ -106,11 +108,49 @@ const leaveTypes = [
   { value: "Emergency", label: "Emergency Leave" },
 ];
 
+// Validation schema for edit form
+const editLeaveSchema = yup.object({
+  employee_name: yup.string().required("Employee name is required"),
+  leave_type: yup.string().oneOf(leaveTypes.map(t => t.value), "Invalid leave type").required("Leave type is required"),
+  from_date: yup.string().required("From date is required"),
+  to_date: yup.string().required("To date is required"),
+  reason: yup.string().min(10, "Reason must be at least 10 characters").max(500, "Reason cannot exceed 500 characters").required("Reason is required"),
+}).test('date-validation', 'To date must be after from date', function(values) {
+  const { from_date, to_date } = values;
+  if (from_date && to_date) {
+    return new Date(to_date) >= new Date(from_date);
+  }
+  return true;
+});
+
+interface Leave {
+  id: number;
+  user_id: number;
+  employee_name: string;
+  leave_type: string;
+  from_date: string;
+  to_date: string;
+  reason: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  created_at: string;
+  updated_at: string;
+}
+
+interface PaginatedLeaves {
+  leaves: Leave[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+  limit: number;
+}
+
 export default function LeaveTable() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { state } = useAuth();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
   const [viewDetailsDialog, setViewDetailsDialog] = useState<{ open: boolean; leave: Leave | null }>({
     open: false,
     leave: null,
@@ -120,18 +160,35 @@ export default function LeaveTable() {
     leave: null,
   });
 
-  const { data: leaves = [], isLoading, refetch } = useQuery<Leave[]>({
-    queryKey: ["/api/leaves", statusFilter === "all" ? "" : `?status=${statusFilter}`],
+  const limit = 10;
+
+  const { data, isLoading, refetch } = useQuery<PaginatedLeaves>({
+    queryKey: ["/api/leaves", { page, limit, status: statusFilter !== "all" ? statusFilter : undefined }],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+
+      if (statusFilter !== "all") {
+        params.append("status", statusFilter);
+      }
+
+      const response = await apiRequest("GET", `/api/leaves?${params}`);
+      return response.json();
+    },
   });
 
+  const leaves = data?.leaves || [];
+  const totalPages = data?.totalPages || 1;
+
   const updateLeaveMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: InsertLeave }) => {
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
       const response = await apiRequest("PUT", `/api/leaves/${id}`, data);
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leaves"] });
-      setEditDialog({ open: false, leave: null });
     },
   });
 
@@ -233,7 +290,8 @@ export default function LeaveTable() {
             </Typography>
           </Box>
         ) : (
-          <TableContainer
+          <>
+            <TableContainer
             component={Paper}
             elevation={0}
             sx={{
@@ -280,30 +338,30 @@ export default function LeaveTable() {
                       <Box sx={{ display: "flex", alignItems: "center" }}>
                         <Avatar
                           sx={{
-                            bgcolor: getAvatarColor(leave.employeeName),
+                            bgcolor: getAvatarColor(leave.employee_name),
                             width: 32,
                             height: 32,
                             mr: 2,
                             fontSize: "0.875rem",
                           }}
                         >
-                          {getInitials(leave.employeeName)}
+                          {getInitials(leave.employee_name)}
                         </Avatar>
                         <Typography variant="body2" fontWeight="medium">
-                          {leave.employeeName}
+                          {leave.employee_name}
                         </Typography>
                       </Box>
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={`${leave.leaveType.charAt(0).toUpperCase() + leave.leaveType.slice(1)} Leave`}
-                        color={getLeaveTypeChipColor(leave.leaveType)}
+                        label={`${leave.leave_type.charAt(0).toUpperCase() + leave.leave_type.slice(1)} Leave`}
+                        color={getLeaveTypeChipColor(leave.leave_type)}
                         size="small"
                       />
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {format(new Date(leave.fromDate), "MMM dd, yyyy")} - {format(new Date(leave.toDate), "MMM dd, yyyy")}
+                        {format(new Date(leave.from_date), "MMM dd, yyyy")} - {format(new Date(leave.to_date), "MMM dd, yyyy")}
                       </Typography>
                     </TableCell>
                     <TableCell sx={{ maxWidth: 200 }}>
@@ -348,6 +406,24 @@ export default function LeaveTable() {
               </TableBody>
             </Table>
           </TableContainer>
+
+          {data && data.totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Stack spacing={2}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, newPage) => setPage(newPage)}
+                  color="primary"
+                  size={isMobile ? "small" : "medium"}
+                />
+                <Typography variant="body2" color="text.secondary" textAlign="center">
+                  Showing {((page - 1) * limit) + 1}-{Math.min(page * limit, data.totalCount)} of {data.totalCount} records
+                </Typography>
+              </Stack>
+            </Box>
+          )}
+          </>
         )}
       </CardContent>
 
@@ -380,7 +456,7 @@ export default function LeaveTable() {
                     </Typography>
                   </Box>
                   <Typography variant="body1" fontWeight="medium">
-                    {viewDetailsDialog.leave.employeeName}
+                    {viewDetailsDialog.leave.employee_name}
                   </Typography>
                 </Grid>
 
@@ -392,8 +468,8 @@ export default function LeaveTable() {
                     </Typography>
                   </Box>
                   <Chip
-                    label={`${viewDetailsDialog.leave.leaveType.charAt(0).toUpperCase() + viewDetailsDialog.leave.leaveType.slice(1)} Leave`}
-                    color={getLeaveTypeChipColor(viewDetailsDialog.leave.leaveType)}
+                    label={`${viewDetailsDialog.leave.leave_type.charAt(0).toUpperCase() + viewDetailsDialog.leave.leave_type.slice(1)} Leave`}
+                    color={getLeaveTypeChipColor(viewDetailsDialog.leave.leave_type)}
                     size="small"
                   />
                 </Grid>
@@ -406,7 +482,7 @@ export default function LeaveTable() {
                     </Typography>
                   </Box>
                   <Typography variant="body1">
-                    {format(new Date(viewDetailsDialog.leave.fromDate), "MMMM dd, yyyy")}
+                    {format(new Date(viewDetailsDialog.leave.from_date), "MMMM dd, yyyy")}
                   </Typography>
                 </Grid>
 
@@ -418,7 +494,7 @@ export default function LeaveTable() {
                     </Typography>
                   </Box>
                   <Typography variant="body1">
-                    {format(new Date(viewDetailsDialog.leave.toDate), "MMMM dd, yyyy")}
+                    {format(new Date(viewDetailsDialog.leave.to_date), "MMMM dd, yyyy")}
                   </Typography>
                 </Grid>
 
@@ -456,7 +532,7 @@ export default function LeaveTable() {
                     </Typography>
                   </Box>
                   <Typography variant="body1">
-                    {format(new Date(viewDetailsDialog.leave.createdAt), "MMMM dd, yyyy 'at' hh:mm a")}
+                    {format(new Date(viewDetailsDialog.leave.created_at), "MMMM dd, yyyy 'at' hh:mm a")}
                   </Typography>
                 </Grid>
               </Grid>
@@ -505,13 +581,13 @@ export default function LeaveTable() {
           {editDialog.leave && (
             <Formik
               initialValues={{
-                employeeName: editDialog.leave.employeeName,
-                leaveType: editDialog.leave.leaveType,
-                fromDate: format(new Date(editDialog.leave.fromDate), "yyyy-MM-dd"),
-                toDate: format(new Date(editDialog.leave.toDate), "yyyy-MM-dd"),
+                employee_name: editDialog.leave.employee_name,
+                leave_type: editDialog.leave.leave_type,
+                from_date: format(new Date(editDialog.leave.from_date), "yyyy-MM-dd"),
+                to_date: format(new Date(editDialog.leave.to_date), "yyyy-MM-dd"),
                 reason: editDialog.leave.reason,
               }}
-              validationSchema={insertLeaveSchema}
+              validationSchema={editLeaveSchema}
               onSubmit={async (values) => {
                 try {
                   await updateLeaveMutation.mutateAsync({
@@ -538,27 +614,27 @@ export default function LeaveTable() {
                       gap: isMobile ? 2 : 3
                     }}>
                       <TextField
-                        name="employeeName"
+                        name="employee_name"
                         label="Employee Name"
-                        value={values.employeeName}
+                        value={values.employee_name}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        error={touched.employeeName && Boolean(errors.employeeName)}
-                        helperText={touched.employeeName && errors.employeeName}
+                        error={touched.employee_name && Boolean(errors.employee_name)}
+                        helperText={touched.employee_name && errors.employee_name}
                         required
                         fullWidth
                         size={isMobile ? "small" : "medium"}
                       />
 
                       <TextField
-                        name="leaveType"
+                        name="leave_type"
                         label="Leave Type"
                         select
-                        value={values.leaveType}
+                        value={values.leave_type}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        error={touched.leaveType && Boolean(errors.leaveType)}
-                        helperText={touched.leaveType && errors.leaveType}
+                        error={touched.leave_type && Boolean(errors.leave_type)}
+                        helperText={touched.leave_type && errors.leave_type}
                         required
                         fullWidth
                         size={isMobile ? "small" : "medium"}
@@ -572,13 +648,13 @@ export default function LeaveTable() {
 
                       <DatePicker
                         label="From Date"
-                        value={values.fromDate ? new Date(values.fromDate) : null}
-                        onChange={(date) => setFieldValue("fromDate", date ? format(date, "yyyy-MM-dd") : "")}
+                        value={values.from_date ? new Date(values.from_date) : null}
+                        onChange={(date) => setFieldValue("from_date", date ? format(date, "yyyy-MM-dd") : "")}
                         minDate={new Date()}
                         slotProps={{
                           textField: {
-                            error: touched.fromDate && Boolean(errors.fromDate),
-                            helperText: touched.fromDate && errors.fromDate,
+                            error: touched.from_date && Boolean(errors.from_date),
+                            helperText: touched.from_date && errors.from_date,
                             required: true,
                             fullWidth: true,
                             size: isMobile ? "small" : "medium",
@@ -588,13 +664,13 @@ export default function LeaveTable() {
 
                       <DatePicker
                         label="To Date"
-                        value={values.toDate ? new Date(values.toDate) : null}
-                        onChange={(date) => setFieldValue("toDate", date ? format(date, "yyyy-MM-dd") : "")}
-                        minDate={values.fromDate ? new Date(values.fromDate) : new Date()}
+                        value={values.to_date ? new Date(values.to_date) : null}
+                        onChange={(date) => setFieldValue("to_date", date ? format(date, "yyyy-MM-dd") : "")}
+                        minDate={values.from_date ? new Date(values.from_date) : new Date()}
                         slotProps={{
                           textField: {
-                            error: touched.toDate && Boolean(errors.toDate),
-                            helperText: touched.toDate && errors.toDate,
+                            error: touched.to_date && Boolean(errors.to_date),
+                            helperText: touched.to_date && errors.to_date,
                             required: true,
                             fullWidth: true,
                             size: isMobile ? "small" : "medium",

@@ -6,13 +6,21 @@ import { CssBaseline } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { theme } from "./theme/theme";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Home from "@/pages/home";
+import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/login" component={LoginPage} />
+      <Route path="/">
+        <ProtectedRoute>
+          <Home />
+        </ProtectedRoute>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -24,7 +32,9 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Router />
+          <AuthProvider>
+            <Router />
+          </AuthProvider>
         </LocalizationProvider>
       </ThemeProvider>
     </QueryClientProvider>

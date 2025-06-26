@@ -10,12 +10,20 @@ import {
   Tabs,
   Tab,
   Paper,
+  Menu,
+  MenuItem,
+  Divider,
 } from "@mui/material";
 import {
   Notifications,
   Work,
   Person,
+  Logout,
+  AdminPanelSettings,
 } from "@mui/icons-material";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import LeaveForm from "@/components/leave-form";
 import LeaveTable from "@/components/leave-table";
 import AdminPanel from "@/components/admin-panel";
@@ -43,10 +51,35 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function Home() {
+  const { state, logout } = useAuth();
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState(0);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
+  };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    // Clear all React Query cache
+    queryClient.clear();
+    // Force page reload to clear all in-memory data
+    window.location.href = '/login';
+    handleMenuClose();
+  };
+
+  const getUserInitials = (username: string) => {
+    return username.split(' ').map(name => name[0]).join('').toUpperCase().slice(0, 2);
   };
 
   return (
@@ -63,13 +96,42 @@ export default function Home() {
               <Notifications />
             </IconButton>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main" }}>
-                JD
-              </Avatar>
+              <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
+                <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main" }}>
+                  {getUserInitials(state.user?.username || 'U')}
+                </Avatar>
+              </IconButton>
               <Typography variant="body2" fontWeight="medium">
-                John Doe
+                {state.user?.username}
               </Typography>
+              {state.user?.role === 'admin' && (
+                <AdminPanelSettings color="warning" fontSize="small" />
+              )}
             </Box>
+
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+            >
+              <MenuItem disabled>
+                <Person sx={{ mr: 1 }} />
+                {state.user?.email}
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <Logout sx={{ mr: 1 }} />
+                Logout
+              </MenuItem>
+            </Menu>
           </Box>
         </Toolbar>
       </AppBar>
@@ -85,7 +147,7 @@ export default function Home() {
           >
             <Tab label="Apply Leave" />
             <Tab label="Leave Records" />
-            <Tab label="Admin Panel" />
+            {state.user?.role === 'admin' && <Tab label="Admin Panel" />}
           </Tabs>
 
           <TabPanel value={activeTab} index={0}>
@@ -96,9 +158,11 @@ export default function Home() {
             <LeaveTable />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={2}>
-            <AdminPanel />
-          </TabPanel>
+          {state.user?.role === 'admin' && (
+            <TabPanel value={activeTab} index={2}>
+              <AdminPanel />
+            </TabPanel>
+          )}
         </Paper>
       </Container>
     </Box>
